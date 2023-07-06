@@ -4,7 +4,7 @@ from discord.app_commands import Choice
 from discord.ext import commands
 from discord.ext import tasks
 
-class Example(commands.Cog): #name of your cog class, typically name it based off of your .py file
+class ExamplePremium(commands.Cog): #name of your cog class, typically name it based off of your .py file
     def __init__(self, client):
         self.client = client
 
@@ -15,4 +15,4 @@ class Example(commands.Cog): #name of your cog class, typically name it based of
 
 async def setup(client):
     #guild = client.get_guild(guildid) #uncomment this and the comment on line 18 to sync the cog to a specific guild
-    await client.add_cog(Example(client))#, guilds=[guild])
+    await client.add_cog(ExamplePremium(client))#, guilds=[guild])
