@@ -17,7 +17,7 @@ class ViewPersistence(commands.Bot):
         intents = discord.Intents.all()
         description = "Bot Description here"
         prefix = "."
-        super().__init__(command_prefix=".", intents=intents)
+        super().__init__(description=description, command_prefix=prefix, intents=intents)
         
     async def setup_hook(self) -> None: #for persistent views, add the view here
         self.add_view()
