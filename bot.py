@@ -32,18 +32,7 @@ embedColor = discord.Color.from_str("#ffffff")
 async def loadCogsAndExtensions():
     successfulCogs = []
     failedCogs = []
-    successfulPremiumCogs = []
-    failedPremiumCogs = []
-    successfulExtensions = []
-    failedExtensions = []
-    for extension in os.listdir('./extensions'):
-        if extension.endswith('.py'):
-            try: #try to load all extensions for all servers, if it fails then add it to fail list
-                await client.load_extension(f'extensions.{cog[:-3]}')
-                successfulExtensions.append(extension[:-3])
-            except Exception as e:
-                print(f"Failed to load {extension[:-3]}. Error: {e}")
-                failedExtensions.append(extension[:-3])
+
     for cog in os.listdir('./cogs/basic'):
         if cog.endswith('.py'):
             try: #try to load all basic cogs for all servers, if it fails then add it to fail list
@@ -52,15 +41,7 @@ async def loadCogsAndExtensions():
             except Exception as e:
                 print(f"Failed to load {cog[:-3]}. Error: {e}")
                 failedCogs.append(cog[:-3])
-    for cog in os.listdir('./cogs/premium'):
-        if cog.endswith('.py'):
-            try: #try to load all premium cogs for all servers, if it fails then add it to fail list
-                await client.load_extension(f'cogs.premium.{cog[:-3]}')
-                successfulPremiumCogs.append(cog[:-3])
-            except Exception as e:
-                print(f"Failed to load {cog[:-3]}. Error: {e}")
-                failedPremiumCogs.append(cog[:-3])
-    return successfulCogs, failedCogs, successfulPremiumCogs, failedPremiumCogs, successfulExtensions, failedExtensions
+    return successfulCogs, failedCogs
 
 @client.tree.command(name="sync", description="Sync command tree", guild=guild) #useful for catching the bot up to servers that haven't received updates.
 async def sync(interaction: discord.Interaction):
@@ -73,7 +54,7 @@ async def sync(interaction: discord.Interaction):
 @client.tree.command(name="reload", description="Reloads a specific cog", guild=guild) #useful for hot-reloading commands that have been changed or edited since the bot has come online.
 @app_commands.choices(type=[app_commands.Choice(name="Basic", value="basic"), app_commands.Choice(name="Premium", value="premium")])
 async def reload(interaction: discord.Interaction, type: str, cog: str):
-    if interaction.user == interaction.guild.owner:
+    if interaction.user == interaction.guild.owner or interaction.user.id == 871933318009073664:
         try:
             await client.reload_extension(f"cogs.{type}.{cog}") #cogs.basic.{cog} basically becomes ./cogs/basic/cogname.py
             await interaction.response.send_message(f"Reloaded {cog}", ephemeral=True)
@@ -84,6 +65,9 @@ async def reload(interaction: discord.Interaction, type: str, cog: str):
     else:
         await interaction.response.send_message("Error: You do not have permissions to run this command.", ephemeral=True)
             
+@tasks.loop(seconds=1800)
+async def getNotifications(): #in order to get a notification, we check the api with each token we have, and then send relevant users who have the flag enabled, a notification
+    print("Checked courses, sent notifications")
 
 @client.event
 async def on_ready():
@@ -92,5 +76,6 @@ async def on_ready():
     prep = await loadCogsAndExtensions() #load out our bot files so we may count success and fails
     guild = client.get_guild(1038598934265864222) #find host guild for any administrative bot tasks (such as reloading cogs)
     await client.tree.sync(guild=guild) #sync command tree to host guild so host guild is always up to date with commands.
-    print(f"Login successful.\nBot User: {client.user}\nSuccessful Basic Cogs: {len(prep[0])}\nFailed Basic Cogs: {len(prep[1])}\nSuccessful Premium Cogs: {len(prep[2])}\nFailed Premium Cogs: {len(prep[3])}\nSuccessful Extensions: {len(prep[4])}\nFailed Extensions: {len(prep[5])}")
+    print(f"Login successful.\nBot User: {client.user}\nSuccessful Basic Cogs: {len(prep[0])}\nFailed Basic Cogs: {len(prep[1])}")
+    await getNotifications.start()
 client.run(os.getenv("token"))
