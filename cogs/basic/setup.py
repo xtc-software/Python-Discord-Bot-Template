@@ -3,6 +3,7 @@ from discord import app_commands, ui
 from discord.app_commands import Choice
 from discord.ext import commands
 from discord.ext import tasks
+from scripts import frequency
 
 class Setup(commands.Cog): #name of your cog class, typically name it based off of your .py file
     def __init__(self, client):
@@ -12,7 +13,9 @@ class Setup(commands.Cog): #name of your cog class, typically name it based off 
 
     @setupCmdGroup.command(name="reminders", description="Change your reminder frequency.")
     async def reminders(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Test")
+        flags = await frequency.checkFlags(7)
+        await interaction.response.send_message(str(flags))
+
 
     @setupCmdGroup.command(name="courses", description="View courses attached to your user, so you may add them to this Guild.")
     async def server(self, interaction: discord.Interaction):
