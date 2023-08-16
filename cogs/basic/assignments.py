@@ -6,10 +6,47 @@ from discord.ext import commands
 from discord.ext import tasks
 import datetime
 import asyncio
+from scripts import db
 
 global indexes
 indexes = {}
 
+class Backend(db.Database):
+    async def getAssignments(self, userID: int = None, courseID: int = None):
+        query = """
+            SELECT * FROM assignments
+            WHERE
+                (userid = ? OR ? IS NULL) AND
+                (courseid = ? OR ? IS NULL)
+            ORDER BY due_at
+            LIMIT 30
+        """
+
+        params = (userID, courseID)
+
+        db, cursor = await self.open()
+        async with db.execute(query, params) as cursor:
+            result = await cursor.fetchall()
+
+        await self.close(db, cursor)
+        return result
+    
+    async def getAssignment(self, assignmentID):
+        query = """
+            SELECT * FROM assignments
+            WHERE assignmentid = ?
+        """
+        params = (assignmentID)
+
+        db, cursor = await self.open()
+        async with db.execute(query, params) as cursor:
+            result = await cursor.fetchone()
+        
+        await self.close(db, cursor)
+
+        return result
+
+    
 class Embeds():
     class Assignment(discord.Embed):
         async def build(id, name, description, due_date, allowed_extensions, points_possible, grading_type, index, count):
