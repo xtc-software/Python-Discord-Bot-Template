@@ -48,7 +48,8 @@ class Views():
         
         @discord.ui.button(style=discord.ButtonStyle.gray, emoji="⬅️")
         async def leftButton(self, interaction: discord.Interaction, button: discord.ui.Button):
-            indexes[interaction.user.id] -= 1
+            if indexes[interaction.user.id] > 0: 
+                indexes[interaction.user.id] -= 1
             embed = await Embeds.Assignment.build("1234", "Math Test", "Chapter 4 Sections A-Z math test", "1692082800", [".txt", ".docx"], 100, "Flat", indexes[interaction.user.id], 5)
             await interaction.response.defer()
             await interaction.edit_original_response(embed=embed, view=Views.AssignmentButtons())
@@ -74,7 +75,9 @@ class Views():
         
         @discord.ui.button(style=discord.ButtonStyle.gray, emoji="➡️")
         async def rightButton(self, interaction: discord.Interaction, button: discord.ui.Button):
-            indexes[interaction.user.id] += 1
+            lastAssignment = 5
+            if indexes[interaction.user.id] + 1 < lastAssignment:
+                indexes[interaction.user.id] += 1
             embed = await Embeds.Assignment.build("1234", "Math Test", "Chapter 4 Sections A-Z math test", "1692082800", [".txt", ".docx"], 100, "Flat", indexes[interaction.user.id], 5)
             await interaction.response.defer()
             await interaction.edit_original_response(embed=embed, view=Views.AssignmentButtons())
