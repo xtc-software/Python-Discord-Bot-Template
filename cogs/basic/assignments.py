@@ -18,6 +18,7 @@ class Backend(db.Database):
             WHERE
                 (userid = ? OR ? IS NULL) AND
                 (courseid = ? OR ? IS NULL)
+            ORDER BY due_at
             LIMIT 30
         """
 
