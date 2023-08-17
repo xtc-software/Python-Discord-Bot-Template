@@ -33,13 +33,13 @@ def convertTime(time):
 
     return time_object.timestamp()
 
-async def getCourses(userID: None, token: None):
-    if not userID and not token: return
+async def getCourses(userID: None, auth_token: None):
+    if not userID and not auth_token: return
 
     if userID:
         header = {'Authorization': 'Bearer ' + token(userID)}
     else:
-        header = {'Authorization': 'Bearer ' + token}
+        header = {'Authorization': 'Bearer ' + auth_token}
     data = {
         "enrollment_type": "student",
         "enrollment_state": "active",

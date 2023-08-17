@@ -1,4 +1,3 @@
-from typing import Optional
 import discord
 from discord import app_commands, ui
 from discord.app_commands import Choice
@@ -22,31 +21,35 @@ class Backend(db.Database):
             LIMIT 30
         """
 
-        params = (userID, courseID)
+        params = (userID, userID, courseID, courseID)
 
-        db = await self.open()
-        async with db.execute(query, params) as cursor:
-            result = await cursor.fetchall()
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchall()
+            return result
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
 
-        await self.close(db)
-        return result
-    
-    async def getAssignment(self, assignmentID):
-        query = """
-            SELECT * FROM assignments
-            WHERE assignmentid = ?
-        """
-        params = (assignmentID)
+async def getAssignment(self, assignmentID):
+    query = """
+        SELECT * FROM assignments
+        WHERE assignmentid = ?
+    """
+    params = (assignmentID,)
 
+    try:
         db = await self.open()
         async with db.execute(query, params) as cursor:
             result = await cursor.fetchone()
-        
+        return result
+    except Exception as e:
+        return e
+    finally:
         await self.close(db)
 
-        return result
-
-    
 class Embeds():
     class Assignment(discord.Embed):
         async def build(id, name, description, due_date, allowed_extensions, points_possible, grading_type, index, count):

@@ -16,34 +16,39 @@ class Backend(db.Database):
         """
         params = (userID,)
 
-        db = await self.open()
-        async with db.execute(query, params) as cursor:
-            result = await cursor.fetchall()
-
-        await self.close(db)
-        return result
+        try: 
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchall()
+            return result
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
     
     # get courses that are registered to a guild
     async def getCoursesForGuild(self, guildID):
         query = """
-            SELECT FROM guilds 
+            SELECT * FROM guilds 
             WHERE
             (guildid = ?)
         """
 
         params = (guildID,)
 
-        db = await self.open()
-        async with db.execute(query, params) as cursor:
-            result = await cursor.fetchall()
-
-        await self.close(db)
-        return result
+        try: 
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchall()
+            return result
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
     
     # adds user to database given userid and token. adds courses automatically
     async def addUser(self, userID, token, notifs):
-        courses = await api.getCourses(userID, token)
-        
+
         query = """
             INSERT INTO users 
             VALUES
@@ -52,11 +57,16 @@ class Backend(db.Database):
 
         params = (userID, token, notifs)
 
-        db = await self.open()
-        async with db.execute(query, params) as cursor:
-            pass
-
-        await self.close(db)
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+        
         return True
     
     # registers guild and admin's courses
@@ -70,10 +80,20 @@ class Backend(db.Database):
         params = (guildID,)
 
         db = await self.open()
-        async with db.execute(query, params) as cursor:
-            pass
+        
+        try:
+            for course in courses:
+                params = (guildID, course[0], course[1])
+                async with db.execute(query, params) as cursor:
+                    pass
 
-        await self.close(db)
+            await db.commit()
+        except Exception as e:
+            return e
+        
+        finally:
+            await self.close(db)
+            
         return True
     
     async def unregisterGuild(self, guildID):
@@ -83,13 +103,18 @@ class Backend(db.Database):
             (guildid = ?);
         """
 
-        params = (guildID)
+        params = (guildID,)
 
-        db = await self.open()
-        async with db.execute(query, params) as cursor:
-            pass
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
 
-        await self.close(db)
         return True
     
     async def addCourseToGuild(self, guildID, course):
@@ -101,28 +126,37 @@ class Backend(db.Database):
 
         params = (guildID, course[0], course[1])
 
-        db = await self.open()
-        async with db.execute(query, params) as cursor:
-            pass
-
-        await self.close(db)
+        try: 
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
         return True
     
     async def removeCourseFromGuild(self, guildID, course):
         query = """
             DELETE FROM guilds 
             WHERE
-            (guildid = ?)
+            (guildid = ?) AND
             (courseid = ?);
         """
 
         params = (guildID, course[1])
 
-        db = await self.open()
-        async with db.execute(query, params) as cursor:
-            pass
-
-        await self.close(db)
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+        
         return True
     
 class UserSetup(discord.ui.View):
