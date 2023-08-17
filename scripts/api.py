@@ -55,12 +55,9 @@ async def getCourses(userID: None, token: None):
         if r[i]["term"]["name"] == current_term:
             courses.append(r[i])
 
-    courseDict = {}
+    
 
-    for course in courses:
-        courseDict[course["name"]] = course["id"]
-
-    return courseDict
+    return courses
 
 async def getAssignments(userID):
     header = {'Authorization': 'Bearer ' + token(userID)}
