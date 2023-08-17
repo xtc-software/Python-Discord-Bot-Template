@@ -24,7 +24,7 @@ class Backend(db.Database):
 
         params = (userID, courseID)
 
-        db, cursor = await self.open()
+        db = await self.open()
         async with db.execute(query, params) as cursor:
             result = await cursor.fetchall()
 
@@ -38,7 +38,7 @@ class Backend(db.Database):
         """
         params = (assignmentID)
 
-        db, cursor = await self.open()
+        db = await self.open()
         async with db.execute(query, params) as cursor:
             result = await cursor.fetchone()
         
