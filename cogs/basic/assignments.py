@@ -11,6 +11,7 @@ global indexes
 indexes = {}
 
 class Backend(db.Database):
+    # get assignments by userID or courseID
     async def getAssignments(self, userID: int = None, courseID: int = None):
         query = """
             SELECT * FROM assignments
@@ -33,22 +34,23 @@ class Backend(db.Database):
         finally:
             await self.close(db)
 
-async def getAssignment(self, assignmentID):
-    query = """
-        SELECT * FROM assignments
-        WHERE assignmentid = ?
-    """
-    params = (assignmentID,)
+    # get assignment by assignmentID
+    async def getAssignment(self, assignmentID):
+        query = """
+            SELECT * FROM assignments
+            WHERE assignmentid = ?
+        """
+        params = (assignmentID,)
 
-    try:
-        db = await self.open()
-        async with db.execute(query, params) as cursor:
-            result = await cursor.fetchone()
-        return result
-    except Exception as e:
-        return e
-    finally:
-        await self.close(db)
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchone()
+            return result
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
 
 class Embeds():
     class Assignment(discord.Embed):

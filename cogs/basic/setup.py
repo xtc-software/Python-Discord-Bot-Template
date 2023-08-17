@@ -7,6 +7,44 @@ from discord.interactions import Interaction
 from scripts import frequency, encode, db, api
 
 class Backend(db.Database):
+    # check if user is registered
+    async def isUser(self, userID):
+        query = """
+            SELECT COUNT(*) FROM users
+            WHERE (userid = ?)
+        """
+
+        params = (userID,)
+
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchone()
+            return False if result == 0 else True
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+    
+    async def delUser(self, userID):
+        query = """
+            DELETE FROM users 
+            WHERE (userid = ?)
+        """
+
+        params = (userID,)
+
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+        
+        return True
     # get all courses for user in db
     async def getCourses(self, userID):
         query = """
@@ -96,6 +134,7 @@ class Backend(db.Database):
             
         return True
     
+    # remove all courses from guild
     async def unregisterGuild(self, guildID):
         query = """
             DELETE FROM guilds 
@@ -117,6 +156,7 @@ class Backend(db.Database):
 
         return True
     
+    # add one course to a guild
     async def addCourseToGuild(self, guildID, course):
         query = """
             INSERT INTO guilds
@@ -137,6 +177,7 @@ class Backend(db.Database):
             await self.close(db)
         return True
     
+    # remove one course from guild
     async def removeCourseFromGuild(self, guildID, course):
         query = """
             DELETE FROM guilds 
