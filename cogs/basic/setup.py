@@ -16,11 +16,11 @@ class Backend(db.Database):
         """
         params = (userID,)
 
-        db, cursor = await self.open()
+        db = await self.open()
         async with db.execute(query, params) as cursor:
             result = await cursor.fetchall()
 
-        await self.close(db, cursor)
+        await self.close(db)
         return result
     
     # get courses that are registered to a guild
@@ -33,11 +33,11 @@ class Backend(db.Database):
 
         params = (guildID,)
 
-        db, cursor = await self.open()
+        db = await self.open()
         async with db.execute(query, params) as cursor:
             result = await cursor.fetchall()
 
-        await self.close(db, cursor)
+        await self.close(db)
         return result
     
     # adds user to database given userid and token. adds courses automatically
@@ -52,11 +52,11 @@ class Backend(db.Database):
 
         params = (userID, token, notifs)
 
-        db, cursor = await self.open()
+        db = await self.open()
         async with db.execute(query, params) as cursor:
             pass
 
-        await self.close(db, cursor)
+        await self.close(db)
         return True
     
     # registers guild and admin's courses
@@ -69,11 +69,11 @@ class Backend(db.Database):
 
         params = (guildID,)
 
-        db, cursor = await self.open()
+        db = await self.open()
         async with db.execute(query, params) as cursor:
             pass
 
-        await self.close(db, cursor)
+        await self.close(db)
         return True
     
     async def unregisterGuild(self, guildID):
@@ -85,11 +85,11 @@ class Backend(db.Database):
 
         params = (guildID)
 
-        db, cursor = await self.open()
+        db = await self.open()
         async with db.execute(query, params) as cursor:
             pass
 
-        await self.close(db, cursor)
+        await self.close(db)
         return True
     
     async def addCourseToGuild(self, guildID, course):
@@ -101,11 +101,11 @@ class Backend(db.Database):
 
         params = (guildID, course[0], course[1])
 
-        db, cursor = await self.open()
+        db = await self.open()
         async with db.execute(query, params) as cursor:
             pass
 
-        await self.close(db, cursor)
+        await self.close(db)
         return True
     
     async def removeCourseFromGuild(self, guildID, course):
@@ -118,11 +118,11 @@ class Backend(db.Database):
 
         params = (guildID, course[1])
 
-        db, cursor = await self.open()
+        db = await self.open()
         async with db.execute(query, params) as cursor:
             pass
 
-        await self.close(db, cursor)
+        await self.close(db)
         return True
     
 class UserSetup(discord.ui.View):

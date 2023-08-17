@@ -28,7 +28,7 @@ class Backend(db.Database):
         async with db.execute(query, params) as cursor:
             result = await cursor.fetchall()
 
-        await self.close(db, cursor)
+        await self.close(db)
         return result
     
     async def getAssignment(self, assignmentID):
@@ -42,7 +42,7 @@ class Backend(db.Database):
         async with db.execute(query, params) as cursor:
             result = await cursor.fetchone()
         
-        await self.close(db, cursor)
+        await self.close(db)
 
         return result
 
