@@ -7,10 +7,10 @@ class Database():
         self.db = "../database.db"
         return
     
-    async def open():
+    async def open(self):
         return await aiosqlite.connect("../database.db")
 
-    async def close(connection):
+    async def close(self, connection):
         await connection.close()
     
     async def runQuery(self, query: str):
