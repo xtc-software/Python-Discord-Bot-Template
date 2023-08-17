@@ -12,3 +12,10 @@ async def decode(string: str):
     decoded_bytes = base64.urlsafe_b64decode(b64_bytes)
     decoded_string = decoded_bytes.decode("ascii")
     return decoded_string
+
+async def encryt(string: str):
+    pass
+
+
+async def decrypt(string: str):
+    pass

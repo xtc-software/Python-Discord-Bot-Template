@@ -1,4 +1,3 @@
-from typing import Optional
 import discord
 from discord import app_commands, ui
 from discord.app_commands import Choice
@@ -12,6 +11,7 @@ global indexes
 indexes = {}
 
 class Backend(db.Database):
+    # get assignments by userID or courseID
     async def getAssignments(self, userID: int = None, courseID: int = None):
         query = """
             SELECT * FROM assignments
@@ -22,31 +22,36 @@ class Backend(db.Database):
             LIMIT 30
         """
 
-        params = (userID, courseID)
+        params = (userID, userID, courseID, courseID)
 
-        db, cursor = await self.open()
-        async with db.execute(query, params) as cursor:
-            result = await cursor.fetchall()
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchall()
+            return result
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
 
-        await self.close(db, cursor)
-        return result
-    
+    # get assignment by assignmentID
     async def getAssignment(self, assignmentID):
         query = """
             SELECT * FROM assignments
             WHERE assignmentid = ?
         """
-        params = (assignmentID)
+        params = (assignmentID,)
 
-        db, cursor = await self.open()
-        async with db.execute(query, params) as cursor:
-            result = await cursor.fetchone()
-        
-        await self.close(db, cursor)
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchone()
+            return result
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
 
-        return result
-
-    
 class Embeds():
     class Assignment(discord.Embed):
         async def build(id, name, description, due_date, allowed_extensions, points_possible, grading_type, index, count):

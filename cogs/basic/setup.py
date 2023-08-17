@@ -1,13 +1,205 @@
-from typing import Any, Optional
 import discord
 from discord import app_commands, ui
 from discord.app_commands import Choice
 from discord.ext import commands
 from discord.ext import tasks
 from discord.interactions import Interaction
-from scripts import frequency, encode
-import base64
+from scripts import frequency, encode, db, api
 
+class Backend(db.Database):
+    # check if user is registered
+    async def isUser(self, userID):
+        query = """
+            SELECT COUNT(*) FROM users
+            WHERE (userid = ?)
+        """
+
+        params = (userID,)
+
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchone()
+            return False if result == 0 else True
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+    
+    async def delUser(self, userID):
+        query = """
+            DELETE FROM users 
+            WHERE (userid = ?)
+        """
+
+        params = (userID,)
+
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+        
+        return True
+    # get all courses for user in db
+    async def getCourses(self, userID):
+        query = """
+            SELECT * FROM courses 
+            WHERE
+            (userid = ?);
+        """
+        params = (userID,)
+
+        try: 
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchall()
+            return result
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+    
+    # get courses that are registered to a guild
+    async def getCoursesForGuild(self, guildID):
+        query = """
+            SELECT * FROM guilds 
+            WHERE
+            (guildid = ?)
+        """
+
+        params = (guildID,)
+
+        try: 
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchall()
+            return result
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+    
+    # adds user to database given userid and token. adds courses automatically
+    async def addUser(self, userID, token, notifs):
+
+        query = """
+            INSERT INTO users 
+            VALUES
+            (?, ?, ?)
+        """
+
+        params = (userID, token, notifs)
+
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+        
+        return True
+    
+    # registers guild and admin's courses
+    async def registerGuild(self, guildID, courses):
+        query = """
+            INSERT INTO guilds
+            VALUES
+            (?,?,?);
+        """
+
+        params = (guildID,)
+
+        db = await self.open()
+        
+        try:
+            for course in courses:
+                params = (guildID, course[0], course[1])
+                async with db.execute(query, params) as cursor:
+                    pass
+
+            await db.commit()
+        except Exception as e:
+            return e
+        
+        finally:
+            await self.close(db)
+            
+        return True
+    
+    # remove all courses from guild
+    async def unregisterGuild(self, guildID):
+        query = """
+            DELETE FROM guilds 
+            WHERE
+            (guildid = ?);
+        """
+
+        params = (guildID,)
+
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+
+        return True
+    
+    # add one course to a guild
+    async def addCourseToGuild(self, guildID, course):
+        query = """
+            INSERT INTO guilds
+            VALUES
+            (?, ?, ?)
+        """
+
+        params = (guildID, course[0], course[1])
+
+        try: 
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+        return True
+    
+    # remove one course from guild
+    async def removeCourseFromGuild(self, guildID, course):
+        query = """
+            DELETE FROM guilds 
+            WHERE
+            (guildid = ?) AND
+            (courseid = ?);
+        """
+
+        params = (guildID, course[1])
+
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                pass
+            await db.commit()
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+        
+        return True
+    
 class UserSetup(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
