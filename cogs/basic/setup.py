@@ -1,8 +1,62 @@
+from typing import Any, Optional
 import discord
 from discord import app_commands, ui
 from discord.app_commands import Choice
 from discord.ext import commands
 from discord.ext import tasks
+from discord.interactions import Interaction
+from scripts import frequency, encode
+import base64
+
+class UserSetup(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(discord.ui.Button(style=discord.ButtonStyle.link, label="Open Canvas Login", url="https://uncc.instructure.com/profile/settings"))
+
+    class Modal(discord.ui.Modal):
+        def __init__(self):
+            super().__init__(title="Enter Token", timeout=None)
+
+        token = ui.TextInput(style=discord.TextStyle.short, label="Token", placeholder="Canvas Access Token", required=True)
+        async def on_submit(self, interaction: discord.Interaction):
+            encoded_token = await encode.encode(str(self.token))
+            decoded_token = await encode.decode(encoded_token)
+            await interaction.response.send_message(f"Pretend I sent {encoded_token} to the database.\nWe can decode it to look like: {decoded_token}", ephemeral=True)
+            return 
+
+    @discord.ui.button(style=discord.ButtonStyle.primary, label="Apply Token", emoji="⚙️", custom_id="applyToken", row=1)
+    async def applyToken(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(self.Modal())
+        return
+
+class ReminderSetup(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(self.FrequencySelect())
+
+    class FrequencySelect(discord.ui.Select):
+        def __init__(self):
+            options = [
+                discord.SelectOption(label="1 hour before due", value=1, emoji="⏰"),
+                discord.SelectOption(label="6 hours before due", value=2, emoji="⏰"),
+                discord.SelectOption(label="12 hours before due", value=4, emoji="⏰"),
+                discord.SelectOption(label="1 day before due", value=8, emoji="⏰"),
+                discord.SelectOption(label="3 days before due", value=16, emoji="⏰"),
+                discord.SelectOption(label="5 days before due", value=32, emoji="⏰"),
+                discord.SelectOption(label="1 week before due", value=64, emoji="⏰"),
+                discord.SelectOption(label="2 weeks before due", value=128, emoji="⏰"),
+                discord.SelectOption(label="1 month before due", value=256, emoji="⏰"),
+            ]
+            super().__init__(placeholder="📅 When should we remind you?", min_values=0, max_values=9, options=options)
+
+        async def callback(self, interaction: discord.Interaction):
+            if self.values == []: return
+            await interaction.response.defer()
+            bit = 0
+            for value in self.values:
+                value = int(value)
+                bit = bit + value
+            await interaction.followup.send(f"Selected {self.values}, total of bits are {bit}", ephemeral=True)
 
 class Setup(commands.Cog): #name of your cog class, typically name it based off of your .py file
     def __init__(self, client):
@@ -12,7 +66,8 @@ class Setup(commands.Cog): #name of your cog class, typically name it based off 
 
     @setupCmdGroup.command(name="reminders", description="Change your reminder frequency.")
     async def reminders(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Test")
+        await interaction.response.send_message(view=ReminderSetup(), ephemeral=True)
+
 
     @setupCmdGroup.command(name="courses", description="View courses attached to your user, so you may add them to this Guild.")
     async def server(self, interaction: discord.Interaction):
@@ -25,6 +80,11 @@ class Setup(commands.Cog): #name of your cog class, typically name it based off 
         
     @setupCmdGroup.command(name="user", description="Add a Canvas Token to your Discord User so we can access data like your courses and assignments.")
     async def user(self, interaction: discord.Interaction):
+        embed = discord.Embed()
+        embed.title = "⚙️ User Setup Guide ⚙️"
+        embed.description = "Steps to setup a user token.\n1. do\n2. this\n3. PLEASE"
+        embed.color = discord.Color.from_str("#E72429")
+        await interaction.response.send_message(embed=embed, view=UserSetup(), ephemeral=True)
         return
 
 
