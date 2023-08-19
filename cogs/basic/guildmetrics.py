@@ -59,12 +59,12 @@ class GuildMetrics(commands.Cog): #name of your cog class, typically name it bas
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        Backend.registerGuild(guild.id)
+        await Backend.registerGuild(self, guild.id)
         return
     
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
-        Backend.unregisterGuild(guild.id)
+        await Backend.unregisterGuild(self, guild.id)
         return
 
 async def setup(client):
