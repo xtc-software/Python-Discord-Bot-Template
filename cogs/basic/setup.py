@@ -26,6 +26,25 @@ class Backend(db.Database):
         finally:
             await self.close(db)
     
+    # check if user has token
+    async def hasToken(self, userID):
+        query = """
+            SELECT token FROM users
+            WHERE (userid = ?)
+        """
+
+        params = (userID,)
+
+        try:
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchone()
+            return False if result == 0 else True
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+    
     async def delUser(self, userID):
         query = """
             DELETE FROM users 
@@ -105,55 +124,6 @@ class Backend(db.Database):
         finally:
             await self.close(db)
         
-        return True
-    
-    # registers guild and admin's courses
-    async def registerGuild(self, guildID, courses):
-        query = """
-            INSERT INTO guilds
-            VALUES
-            (?,?,?);
-        """
-
-        params = (guildID,)
-
-        db = await self.open()
-        
-        try:
-            for course in courses:
-                params = (guildID, course[0], course[1])
-                async with db.execute(query, params) as cursor:
-                    pass
-
-            await db.commit()
-        except Exception as e:
-            return e
-        
-        finally:
-            await self.close(db)
-            
-        return True
-    
-    # remove all courses from guild
-    async def unregisterGuild(self, guildID):
-        query = """
-            DELETE FROM guilds 
-            WHERE
-            (guildid = ?);
-        """
-
-        params = (guildID,)
-
-        try:
-            db = await self.open()
-            async with db.execute(query, params) as cursor:
-                pass
-            await db.commit()
-        except Exception as e:
-            return e
-        finally:
-            await self.close(db)
-
         return True
     
     # add one course to a guild
