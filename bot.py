@@ -78,4 +78,4 @@ async def on_ready():
     await client.tree.sync(guild=guild) #sync command tree to host guild so host guild is always up to date with commands.
     print(f"Login successful.\nBot User: {client.user}\nSuccessful Basic Cogs: {len(prep[0])}\nFailed Basic Cogs: {len(prep[1])}")
     await getNotifications.start()
-client.run(os.getenv("token"))
+client.run("MTAzODU5OTc1NDI3NzQ1Mzk0NA.Gjwqrq.u7_PTZi-08Lu_WJvbi_uO47TZor_epV1N2xg5M")
