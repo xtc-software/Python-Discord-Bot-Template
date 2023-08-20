@@ -7,8 +7,7 @@ async def encode(string: str):
     return b64_string
 
 async def decode(string: str):
-    b64_string = string
-    b64_bytes = b64_string.encode("ascii")
+    b64_bytes = string.encode("ascii")
     decoded_bytes = base64.urlsafe_b64decode(b64_bytes)
     decoded_string = decoded_bytes.decode("ascii")
     return decoded_string
