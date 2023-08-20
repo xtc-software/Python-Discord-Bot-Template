@@ -4,7 +4,7 @@ from discord.app_commands import Choice
 from discord.ext import commands
 from discord.ext import tasks
 from discord.interactions import Interaction
-import scripts.db as db
+from scripts import db
 
 class Backend(db.Database):
     # check if user is registered

@@ -5,10 +5,7 @@ from discord.app_commands import Choice
 from discord.ext import commands
 from discord.ext import tasks
 import os
-from dotenv import load_dotenv
 
-
-load_dotenv()
 
 #configuration
 class ViewPersistence(commands.Bot):

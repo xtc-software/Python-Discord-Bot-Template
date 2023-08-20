@@ -3,6 +3,9 @@ import aiosqlite
 class Database():
     db = "../database.db"
 
+    def __init__(self):
+        return
+    
     async def open(self):
         return await aiosqlite.connect("../database.db")
 
