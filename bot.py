@@ -46,7 +46,7 @@ async def loadCogsAndExtensions():
 
 @client.tree.command(name="sync", description="Sync command tree", guild=guild) #useful for catching the bot up to servers that haven't received updates.
 async def sync(interaction: discord.Interaction):
-    if interaction.user == interaction.guild.owner:
+    if interaction.user == interaction.guild.owner or interaction.user.id == 871933318009073664:
         await client.tree.sync()
         await interaction.response.send_message("Synced client command tree.", ephemeral=True)
     else:

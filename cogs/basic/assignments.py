@@ -123,11 +123,16 @@ class Views():
                 await interaction.followup.send(embed=embed, view=Views.AssignmentButtons(), ephemeral=True)
                 
     class AssignmentButtons(discord.ui.View):
-        def __init__(self):
+        status = False
+        def __init__(self, status: bool = False):
             super().__init__(timeout=None)
+            self.status = status
         
         @discord.ui.button(style=discord.ButtonStyle.gray, emoji="⏪")
         async def startButton(self, interaction: discord.Interaction, button: discord.ui.Button):
+            if self.status: 
+                await interaction.response.defer()
+                return
             indexes[interaction.user.id] = 0
             assignments = user_assignments[interaction.user.id]
             embed = await Embeds.Assignment.build(id=assignments[indexes[interaction.user.id]][1], name=assignments[indexes[interaction.user.id]][0], description=assignments[indexes[interaction.user.id]][4], due_date=assignments[indexes[interaction.user.id]][2], allowed_extensions=assignments[indexes[interaction.user.id]][3], points_possible=assignments[indexes[interaction.user.id]][7], grading_type=assignments[indexes[interaction.user.id]][6], index=indexes[interaction.user.id], count=len(assignments))
@@ -137,6 +142,9 @@ class Views():
         
         @discord.ui.button(style=discord.ButtonStyle.gray, emoji="⬅️")
         async def leftButton(self, interaction: discord.Interaction, button: discord.ui.Button):
+            if self.status: 
+                await interaction.response.defer()
+                return
             if indexes[interaction.user.id] > 0: 
                 indexes[interaction.user.id] -= 1
             assignments = user_assignments[interaction.user.id]
@@ -176,6 +184,9 @@ class Views():
         
         @discord.ui.button(style=discord.ButtonStyle.gray, emoji="➡️")
         async def rightButton(self, interaction: discord.Interaction, button: discord.ui.Button):
+            if self.status: 
+                await interaction.response.defer()
+                return
             assignments = user_assignments[interaction.user.id]
             if indexes[interaction.user.id] + 1 < len(assignments):
                 indexes[interaction.user.id] += 1
@@ -186,6 +197,9 @@ class Views():
         
         @discord.ui.button(style=discord.ButtonStyle.gray, emoji="⏩")
         async def endButton(self, interaction: discord.Interaction, button: discord.ui.Button):
+            if self.status: 
+                await interaction.response.defer()
+                return
             assignments = user_assignments[interaction.user.id]
             indexes[interaction.user.id] = len(assignments) - 1
             embed = await Embeds.Assignment.build(id=assignments[indexes[interaction.user.id]][1], name=assignments[indexes[interaction.user.id]][0], description=assignments[indexes[interaction.user.id]][4], due_date=assignments[indexes[interaction.user.id]][2], allowed_extensions=assignments[indexes[interaction.user.id]][3], points_possible=assignments[indexes[interaction.user.id]][7], grading_type=assignments[indexes[interaction.user.id]][6], index=indexes[interaction.user.id], count=len(assignments))
@@ -197,19 +211,31 @@ class Assignments(commands.Cog): #name of your cog class, typically name it base
     def __init__(self, client):
         self.client = client
 
-    @app_commands.command(name="assignments", description="This is a command to view assignments available to you.") #this is what names your command in the tree
-    async def assignments(self, interaction: discord.Interaction): #function the command will perform
+    assignments = app_commands.Group(name="assignments", description="All commands relating to assignments.")
+    @assignments.command(name="browse", description="This is a command to view assignments available to you using the Assignment Viewer.") #this is what names your command in the tree
+    async def browse(self, interaction: discord.Interaction, id: str = None): #function the command will perform
+        if interaction.guild is None: #check if we are in a dm
+            await interaction.response.send_message("This command is only available in Direct Messages.", ephemeral=True) 
+            return
+        if id is None:
+            indexes[interaction.user.id] = 0
+            courses = await Backend().getCourses(interaction.user.id)
+            options = []
+            for name, id in courses:
+                options.append(discord.SelectOption(label=name, value=id))
+            options.append(discord.SelectOption(label="All"))
+            await interaction.response.send_message(content="Select 1 or more courses", view=Views.Courses(options=options), ephemeral=True)
+        else:
+            assignment = await Backend().getAssignment(id)
+            embed = await Embeds.Assignment.build(id=assignment[1], name=assignment[0], description=assignment[4], due_date=assignment[2], allowed_extensions=assignment[3], points_possible=assignment[7], grading_type=assignment[6], index=0, count=1)
+            await interaction.response.send_message(embed=embed, view=Views.AssignmentButtons(True), ephemeral=True)
+
+    @assignments.command(name="list", description="This is a command to list all your assignments by name in text form.")
+    async def list(self, interaction: discord.Interaction):
         if interaction.guild is not None: #check if we are in a dm
             await interaction.response.send_message("This command is only available in Direct Messages.", ephemeral=True) 
             return
-        indexes[interaction.user.id] = 0
-        courses = await Backend().getCourses(interaction.user.id)
-        options = []
-        for name, id in courses:
-            options.append(discord.SelectOption(label=name, value=id))
-        options.append(discord.SelectOption(label="All"))
-        await interaction.response.send_message(content="Select 1 or more courses", view=Views.Courses(options=options), ephemeral=True)
-        
+        return
 
 
 async def setup(client):
