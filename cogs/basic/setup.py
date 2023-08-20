@@ -5,6 +5,7 @@ from discord.ext import commands
 from discord.ext import tasks
 from discord.interactions import Interaction
 from scripts import db
+from scripts.encrypt import Encrypt
 
 class Backend(db.Database):
     # check if user is registered
@@ -34,7 +35,7 @@ class Backend(db.Database):
         """
 
         params = (userID,)
-
+        
         try:
             db = await self.open()
             async with db.execute(query, params) as cursor:
@@ -105,6 +106,7 @@ class Backend(db.Database):
     
     # adds user to database given userid and token. adds courses automatically
     async def addUser(self, userID, token, notifs):
+        e = Encrypt()
 
         query = """
             INSERT INTO users 
@@ -112,7 +114,7 @@ class Backend(db.Database):
             (?, ?, ?)
         """
 
-        params = (userID, token, notifs)
+        params = (userID, e.encrypt(token), notifs)
 
         try:
             db = await self.open()
@@ -181,9 +183,9 @@ class UserSetup(discord.ui.View):
 
         token = ui.TextInput(style=discord.TextStyle.short, label="Token", placeholder="Canvas Access Token", required=True)
         async def on_submit(self, interaction: discord.Interaction):
-            encoded_token = await encode.encode(str(self.token))
-            decoded_token = await encode.decode(encoded_token)
-            await interaction.response.send_message(f"Pretend I sent {encoded_token} to the database.\nWe can decode it to look like: {decoded_token}", ephemeral=True)
+            encrypted_token = Encrypt().encrypt(self.token.value)
+            decrypted_token = Encrypt().decrypt(encrypted_token)
+            await interaction.response.send_message(f"Pretend I sent {encrypted_token} to the database.\nWe can decode it to look like: {decrypted_token}", ephemeral=True)
             return 
 
     @discord.ui.button(style=discord.ButtonStyle.primary, label="Apply Token", emoji="⚙️", custom_id="applyToken", row=1)
