@@ -45,7 +45,7 @@ class Backend(db.Database):
         finally:
             await self.close(db)
     
-    async def delUser(self, userID):
+    async def delUser(self, userID): 
         query = """
             DELETE FROM users 
             WHERE (userid = ?)
