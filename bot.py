@@ -5,6 +5,10 @@ from discord.app_commands import Choice
 from discord.ext import commands
 from discord.ext import tasks
 import os
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 #configuration
 class ViewPersistence(commands.Bot):
@@ -78,4 +82,4 @@ async def on_ready():
     await client.tree.sync(guild=guild) #sync command tree to host guild so host guild is always up to date with commands.
     print(f"Login successful.\nBot User: {client.user}\nSuccessful Basic Cogs: {len(prep[0])}\nFailed Basic Cogs: {len(prep[1])}")
     await getNotifications.start()
-client.run(os.getenv("token"))
+client.run(os.getenv("TOKEN"))

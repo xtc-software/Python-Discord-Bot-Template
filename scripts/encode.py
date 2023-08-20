@@ -13,7 +13,7 @@ async def decode(string: str):
     decoded_string = decoded_bytes.decode("ascii")
     return decoded_string
 
-async def encryt(string: str):
+async def encrypt(string: str):
     pass
 
 
