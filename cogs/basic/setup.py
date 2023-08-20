@@ -30,7 +30,7 @@ class Backend(db.Database):
     # check if user has token
     async def hasToken(self, userID):
         query = """
-            SELECT token FROM users
+            SELECT auth_token FROM users
             WHERE (userid = ?)
         """
 
@@ -40,7 +40,7 @@ class Backend(db.Database):
             db = await self.open()
             async with db.execute(query, params) as cursor:
                 result = await cursor.fetchone()
-            return False if result == 0 else True
+            return False if result[0] is None else True
         except Exception as e:
             return e
         finally:
@@ -68,7 +68,7 @@ class Backend(db.Database):
     # get all courses for user in db
     async def getCourses(self, userID):
         query = """
-            SELECT * FROM courses 
+            SELECT courseid FROM user_courses 
             WHERE
             (userid = ?);
         """
@@ -234,12 +234,12 @@ class Setup(commands.Cog): #name of your cog class, typically name it based off 
 
 
     @setupCmdGroup.command(name="courses", description="View courses attached to your user, so you may add them to this Guild.")
-    async def server(self, interaction: discord.Interaction):
-        user = False
+    async def courses(self, interaction: discord.Interaction):
+        user = await Backend().hasToken(interaction.user.id)
         if user:
             await interaction.response.send_message("You are a user. I would show you the dropdown now.", ephemeral=True)
         else:
-            await interaction.response.send_message("You are not a user. Please run </setup user:1141213429064011856> to add a Token to your account so I can access your available courses.", ephemeral=True)
+            await interaction.response.send_message("You are not a user. Please run </setup user:1142364470983790623> to add a Token to your account so I can access your available courses.", ephemeral=True)
         return
         
     @setupCmdGroup.command(name="user", description="Add a Canvas Token to your Discord User so we can access data like your courses and assignments.")
