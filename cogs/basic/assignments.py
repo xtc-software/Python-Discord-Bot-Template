@@ -8,21 +8,25 @@ import asyncio
 from scripts import db
 
 global indexes
+global user_assignments
 indexes = {}
+user_assignments = {}
 
 class Backend(db.Database):
     # get assignments by userID or courseID
     async def getAssignments(self, userID: int = None, courseID: int = None):
         query = """
-            SELECT * FROM assignments
-            WHERE
-                (userid = ? OR ? IS NULL) AND
-                (courseid = ? OR ? IS NULL)
+            select assignments.* 
+            from assignments 
+            join user_courses uc on uc.courseid = assignments.courseid
+            where uc.userid = ?
+            or assignments.courseid = ?
+            group by assignmentid
             ORDER BY due_at
             LIMIT 30
         """
 
-        params = (userID, userID, courseID, courseID)
+        params = (userID, courseID)
 
         try:
             db = await self.open()
@@ -52,6 +56,26 @@ class Backend(db.Database):
         finally:
             await self.close(db)
 
+    #get courses for a user
+    async def getCourses(self, userID):
+        query = """
+            SELECT c.name, c.courseid FROM courses c
+            join user_courses uc on uc.courseid = c.courseid
+            WHERE
+            (uc.userid = ?);
+        """
+        params = (userID,)
+
+        try: 
+            db = await self.open()
+            async with db.execute(query, params) as cursor:
+                result = await cursor.fetchall()
+            return result
+        except Exception as e:
+            return e
+        finally:
+            await self.close(db)
+
 class Embeds():
     class Assignment(discord.Embed):
         async def build(id, name, description, due_date, allowed_extensions, points_possible, grading_type, index, count):
@@ -62,7 +86,8 @@ class Embeds():
             embed.title = f"{name}"
             embed.description = description
             formats = ""
-            for ext in allowed_extensions:
+            extensions = allowed_extensions.split(",")
+            for ext in extensions:
                 formats = formats + f"{ext}\n"
             embed.add_field(name="File Formats", value=formats, inline=False)
             embed.add_field(name="Possible Points", value=points_possible, inline=False)
@@ -72,10 +97,31 @@ class Embeds():
             return embed
 
 class Views():
-    class AssignmentOverview(discord.ui.View):
-        def __init__(self):
-            super().__init__(timeout=None)    
+    class Courses(discord.ui.View):
+        def __init__(self, options):
+            super().__init__(timeout=None)  
+            self.add_item(self.CourseSelect(options))
 
+        class CourseSelect(discord.ui.Select):
+            def __init__(self, options):
+                super().__init__(placeholder="📓 Select courses to view assignments", min_values=1, max_values=len(options), options=options)
+
+            async def callback(self, interaction: discord.Interaction):
+                if self.values == []: return
+                await interaction.response.defer()
+                assignments = []
+                if "All" not in self.values:
+                    for value in self.values:
+                        if value != "All":
+                            course_assignments = await Backend().getAssignments(courseID=value)
+                            assignments += course_assignments
+                else:
+                    course_assignments = await Backend().getAssignments(userID=interaction.user.id)
+                    assignments = course_assignments
+                user_assignments[interaction.user.id] = assignments
+                embed = await Embeds.Assignment.build(id=assignments[indexes[interaction.user.id]][1], name=assignments[indexes[interaction.user.id]][0], description=assignments[indexes[interaction.user.id]][4], due_date=assignments[indexes[interaction.user.id]][2], allowed_extensions=assignments[indexes[interaction.user.id]][3], points_possible=assignments[indexes[interaction.user.id]][7], grading_type=assignments[indexes[interaction.user.id]][6], index=indexes[interaction.user.id], count=len(assignments))
+                await interaction.followup.send(embed=embed, view=Views.AssignmentButtons(), ephemeral=True)
+                
     class AssignmentButtons(discord.ui.View):
         def __init__(self):
             super().__init__(timeout=None)
@@ -83,7 +129,8 @@ class Views():
         @discord.ui.button(style=discord.ButtonStyle.gray, emoji="⏪")
         async def startButton(self, interaction: discord.Interaction, button: discord.ui.Button):
             indexes[interaction.user.id] = 0
-            embed = await Embeds.Assignment.build("1234", "Math Test", "Chapter 4 Sections A-Z math test", "1692082800", [".txt", ".docx"], 100, "Flat", indexes[interaction.user.id], 5)
+            assignments = user_assignments[interaction.user.id]
+            embed = await Embeds.Assignment.build(id=assignments[indexes[interaction.user.id]][1], name=assignments[indexes[interaction.user.id]][0], description=assignments[indexes[interaction.user.id]][4], due_date=assignments[indexes[interaction.user.id]][2], allowed_extensions=assignments[indexes[interaction.user.id]][3], points_possible=assignments[indexes[interaction.user.id]][7], grading_type=assignments[indexes[interaction.user.id]][6], index=indexes[interaction.user.id], count=len(assignments))
             await interaction.response.defer()
             await interaction.edit_original_response(embed=embed, view=Views.AssignmentButtons())
             return
@@ -92,7 +139,8 @@ class Views():
         async def leftButton(self, interaction: discord.Interaction, button: discord.ui.Button):
             if indexes[interaction.user.id] > 0: 
                 indexes[interaction.user.id] -= 1
-            embed = await Embeds.Assignment.build("1234", "Math Test", "Chapter 4 Sections A-Z math test", "1692082800", [".txt", ".docx"], 100, "Flat", indexes[interaction.user.id], 5)
+            assignments = user_assignments[interaction.user.id]
+            embed = await Embeds.Assignment.build(id=assignments[indexes[interaction.user.id]][1], name=assignments[indexes[interaction.user.id]][0], description=assignments[indexes[interaction.user.id]][4], due_date=assignments[indexes[interaction.user.id]][2], allowed_extensions=assignments[indexes[interaction.user.id]][3], points_possible=assignments[indexes[interaction.user.id]][7], grading_type=assignments[indexes[interaction.user.id]][6], index=indexes[interaction.user.id], count=len(assignments))
             await interaction.response.defer()
             await interaction.edit_original_response(embed=embed, view=Views.AssignmentButtons())
             return
@@ -100,35 +148,47 @@ class Views():
         @discord.ui.button(style=discord.ButtonStyle.green, label="Turn In", emoji="📝")
         async def submit(self, interaction: discord.Interaction, button: discord.ui.Button):
             time = datetime.datetime.now()
-            future = time + datetime.timedelta(seconds=30)
+            wait_time = 30
+            future = time + datetime.timedelta(seconds=wait_time)
             future = future.timestamp()
             future = round(future)
+            id = interaction.message.embeds[0].author.name
+            id = id.replace("Assignment: ", "")
+            assignment = await Backend().getAssignment(id)
+            types = assignment[3].split(",")
+            allowed_extensions = []
+            for type in types:
+                allowed_extensions.append(str(type).lower())
             await interaction.response.send_message(f"Please upload a file via Discord Attachments <t:{future}:R>")
-            await asyncio.sleep(30)
+            await asyncio.sleep(wait_time)
             attachment = None
             async for message in interaction.channel.history(limit=1):
                 if len(message.attachments) > 0: 
                     attachment = message.attachments[0].url
+                    type = attachment.split(".")[-1]
             if attachment is None:
                 await interaction.edit_original_response(content="Time expired for upload. Please use the command again.")
-            else:
-                await interaction.edit_original_response(content=f"Your file is located at: {attachment}")
+            elif attachment is not None and type in allowed_extensions:
+                await interaction.edit_original_response(content=f"Your file is located at: {attachment}. It has a type of {type}")
+            elif attachment is not None and type not in allowed_extensions:
+                await interaction.edit_original_response(content=f"You uploaded a file of the wrong type.")
             return
         
         @discord.ui.button(style=discord.ButtonStyle.gray, emoji="➡️")
         async def rightButton(self, interaction: discord.Interaction, button: discord.ui.Button):
-            lastAssignment = 5
-            if indexes[interaction.user.id] + 1 < lastAssignment:
+            assignments = user_assignments[interaction.user.id]
+            if indexes[interaction.user.id] + 1 < len(assignments):
                 indexes[interaction.user.id] += 1
-            embed = await Embeds.Assignment.build("1234", "Math Test", "Chapter 4 Sections A-Z math test", "1692082800", [".txt", ".docx"], 100, "Flat", indexes[interaction.user.id], 5)
+            embed = await Embeds.Assignment.build(id=assignments[indexes[interaction.user.id]][1], name=assignments[indexes[interaction.user.id]][0], description=assignments[indexes[interaction.user.id]][4], due_date=assignments[indexes[interaction.user.id]][2], allowed_extensions=assignments[indexes[interaction.user.id]][3], points_possible=assignments[indexes[interaction.user.id]][7], grading_type=assignments[indexes[interaction.user.id]][6], index=indexes[interaction.user.id], count=len(assignments))
             await interaction.response.defer()
             await interaction.edit_original_response(embed=embed, view=Views.AssignmentButtons())
             return
         
         @discord.ui.button(style=discord.ButtonStyle.gray, emoji="⏩")
         async def endButton(self, interaction: discord.Interaction, button: discord.ui.Button):
-            indexes[interaction.user.id] = 4
-            embed = await Embeds.Assignment.build("1234", "Math Test", "Chapter 4 Sections A-Z math test", "1692082800", [".txt", ".docx"], 100, "Flat", indexes[interaction.user.id], 5)
+            assignments = user_assignments[interaction.user.id]
+            indexes[interaction.user.id] = len(assignments) - 1
+            embed = await Embeds.Assignment.build(id=assignments[indexes[interaction.user.id]][1], name=assignments[indexes[interaction.user.id]][0], description=assignments[indexes[interaction.user.id]][4], due_date=assignments[indexes[interaction.user.id]][2], allowed_extensions=assignments[indexes[interaction.user.id]][3], points_possible=assignments[indexes[interaction.user.id]][7], grading_type=assignments[indexes[interaction.user.id]][6], index=indexes[interaction.user.id], count=len(assignments))
             await interaction.response.defer()
             await interaction.edit_original_response(embed=embed, view=Views.AssignmentButtons())
             return
@@ -143,8 +203,12 @@ class Assignments(commands.Cog): #name of your cog class, typically name it base
             await interaction.response.send_message("This command is only available in Direct Messages.", ephemeral=True) 
             return
         indexes[interaction.user.id] = 0
-        embed = await Embeds.Assignment.build("1234", "Math Test", "Chapter 4 Sections A-Z math test", "1692082800", [".txt", ".docx"], 100, "Flat", indexes[interaction.user.id], 5)
-        await interaction.response.send_message(embed=embed, view=Views.AssignmentButtons(), ephemeral=True)
+        courses = await Backend().getCourses(interaction.user.id)
+        options = []
+        for name, id in courses:
+            options.append(discord.SelectOption(label=name, value=id))
+        options.append(discord.SelectOption(label="All"))
+        await interaction.response.send_message(content="Select 1 or more courses", view=Views.Courses(options=options), ephemeral=True)
         
 
 

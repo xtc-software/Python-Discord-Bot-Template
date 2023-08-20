@@ -1,13 +1,13 @@
 import aiosqlite
 
 class Database():
-    db = "../database.db"
+    db = "database.db"
 
     def __init__(self):
         return
     
     async def open(self):
-        return await aiosqlite.connect("../database.db")
+        return await aiosqlite.connect(self.db)
 
     async def close(self, connection):
         await connection.close()
