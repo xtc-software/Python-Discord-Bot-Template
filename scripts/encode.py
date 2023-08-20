@@ -15,6 +15,5 @@ async def decode(string: str):
 async def encrypt(string: str):
     pass
 
-
 async def decrypt(string: str):
     pass
