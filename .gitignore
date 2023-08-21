@@ -1,6 +1,0 @@
-.env
-bot-env/*
-database.db-journal
-__pycache__/
-*.py[cod]
-

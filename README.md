@@ -1,10 +1,2 @@
-# Canvas Bot. Integrate your canvas with discord servers!
- That name will have to be changed later. 
-
-## To-do 
-
-
-## Roadmap
-
-
-## Contributing
+# Python-Discord-Bot-Template
+A template repository meant to help you create your first Discord Bot!
